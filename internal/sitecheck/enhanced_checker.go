@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"slices"
@@ -389,17 +390,19 @@ func parseGRPCURL(rawURL string) (*url.URL, error) {
 		Host:   parsedURL.Host,
 	}
 
-	// If no port is specified, use default ports based on original scheme
+	// If no port is specified, use default ports based on original scheme.
+	// Hostname() strips the brackets of an IPv6 literal, so JoinHostPort puts
+	// them back; otherwise [::1] would become the unparsable target ::1:443.
 	if parsedURL.Port() == "" {
 		switch parsedURL.Scheme {
 		case "https":
-			grpcURL.Host = parsedURL.Hostname() + ":443"
+			grpcURL.Host = net.JoinHostPort(parsedURL.Hostname(), "443")
 		case "http":
-			grpcURL.Host = parsedURL.Hostname() + ":80"
+			grpcURL.Host = net.JoinHostPort(parsedURL.Hostname(), "80")
 		case "grpcs":
-			grpcURL.Host = parsedURL.Hostname() + ":443"
+			grpcURL.Host = net.JoinHostPort(parsedURL.Hostname(), "443")
 		case "grpc":
-			grpcURL.Host = parsedURL.Hostname() + ":80"
+			grpcURL.Host = net.JoinHostPort(parsedURL.Hostname(), "80")
 		default:
 			// For URLs without scheme, default to port 80
 			grpcURL.Host = parsedURL.Host + ":80"
