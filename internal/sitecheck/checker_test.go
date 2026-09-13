@@ -132,6 +132,33 @@ func TestRewriteCheckURLSchemeHonorsConfiguredProtocol(t *testing.T) {
 	}
 }
 
+func TestParseGRPCURLDefaultPort(t *testing.T) {
+	cases := []struct {
+		url  string
+		want string
+	}{
+		{"grpc://example.com", "example.com:80"},
+		{"grpcs://example.com", "example.com:443"},
+		{"grpc://example.com:50051", "example.com:50051"},
+		{"grpc://[2001:db8::1]", "[2001:db8::1]:80"},
+		{"grpcs://[2001:db8::1]", "[2001:db8::1]:443"},
+		{"https://[::1]/health", "[::1]:443"},
+		{"grpc://[2001:db8::1]:50051", "[2001:db8::1]:50051"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.url, func(t *testing.T) {
+			parsed, err := parseGRPCURL(tc.url)
+			if err != nil {
+				t.Fatalf("parseGRPCURL(%q) error = %v", tc.url, err)
+			}
+			if parsed.Host != tc.want {
+				t.Fatalf("parseGRPCURL(%q).Host = %q, want %q", tc.url, parsed.Host, tc.want)
+			}
+		})
+	}
+}
+
 func TestCheckSiteWithConfigRewritesURLScheme(t *testing.T) {
 	t.Cleanup(InvalidateSiteConfigCache)
 
